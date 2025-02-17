@@ -1,25 +1,21 @@
 {
-  "name": "notebackend",
+  "name": "notes-backend",
   "version": "1.0.0",
+  "description": "Backend for notes application",
   "main": "app.js",
   "scripts": {
     "start": "node app.js",
-    "dev": "nodemon app.js",
-    "build": "npm rebuild bcrypt --build-from-source && npm rebuild sqlite3",
-    "install": "npm rebuild sqlite3"
+    "dev": "nodemon app.js"
   },
   "dependencies": {
-    "bcryptjs": "^2.4.3",
+    "bcrypt": "^5.1.0",
     "cors": "^2.8.5",
-    "express": "^4.21.2",
-    "jsonwebtoken": "^9.0.2",
-    "sqlite": "^5.1.1",
-    "sqlite3": "^5.1.7"
+    "express": "^4.18.2",
+    "jsonwebtoken": "^9.0.0",
+    "sqlite": "^4.2.1",
+    "sqlite3": "^5.1.6"
   },
   "devDependencies": {
-    "nodemon": "^3.1.9"
-  },
-  "engines": {
-    "node": ">=16.0.0"
+    "nodemon": "^2.0.22"
   }
 }
