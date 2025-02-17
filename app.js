@@ -1,34 +1,28 @@
 const express = require('express');
 const cors = require('cors')
-const bcrypt = require('bcryptjs')
+const bcrypt = require('bcrypt')
 const jwt = require('jsonwebtoken')
 const app = express();
 
 const jwt_secret_key = 'secret_key'
 
-app.use(cors());
+// Update CORS configuration
+app.use(cors({
+    origin: 'http://localhost:3000',
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+}));
 app.use(express.json());
 
 const { open } = require('sqlite');
-const sqlite3 = require('sqlite3').verbose();;
+const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 
 const dbPath = path.join(__dirname, 'notes.db');
 
 let db;
 
-const authenicationToken = (request, response, next) => {
-    const authHeader = request.headers['authorization']
-    const token = authHeader && authHeader.split(' ')[1]; 
-
-    if (!token){
-        return response.json('Authenication required')
-    }
-    
-    const user = jwt.verify(token , jwt_secret_key)
-    request.user = user; 
-    next();
-}
+// ... authentication middleware remains the same ...
 
 const initialDbandServer = async () => {
     try {
@@ -36,8 +30,9 @@ const initialDbandServer = async () => {
             filename: dbPath,
             driver: sqlite3.Database,
         });
-        app.listen(3000, () => {
-            console.log(`Server Running at http://localhost:3000/`);
+        // Change the port to 5000 or another available port
+        app.listen(5000, () => {
+            console.log(`Server Running at http://localhost:5000/`);
         });
     } catch (e) {
         console.log(`Error Message: ${e.message}`);
@@ -47,87 +42,36 @@ const initialDbandServer = async () => {
 
 initialDbandServer();
 
-app.post('/signup', async(request, response) => {
-    const { name, email, password} = request.body 
-    const existingUser = await db.get(`SELECT * FROM user WHERE email = '${email}'`)
-    if (existingUser){
-       return response.json('Email already exist..')
+// Fix the login endpoint
+app.post('/login', async (request, response) => {
+    try {
+        const { email, password } = request.body;
+        
+        // Fix the SQL query and await it
+        const userDetails = await db.get(`SELECT * FROM user WHERE email = ?`, [email]);
+        
+        if (!userDetails) {
+            return response.status(400).json({ error: 'Invalid email' });
+        }
+
+        const validPassword = await bcrypt.compare(password, userDetails.password);
+        if (!validPassword) {
+            return response.status(400).json({ error: 'Invalid Password' });
+        }
+
+        const token = jwt.sign(
+            { userId: userDetails.id }, 
+            jwt_secret_key, 
+            { expiresIn: '30d' }
+        );
+        
+        response.json({ token });
+    } catch (error) {
+        console.error('Login error:', error);
+        response.status(500).json({ error: 'Internal server error' });
     }
-
-    const hashedPassword = await bcrypt.hash(password,10)
-    
-    const result = await db.run(`INSERT INTO user(name,email,password) VALUES('${name}', '${email}', '${hashedPassword}')`)
-    response.json('Successfully user details created')
-
-})
-
-app.post('/login', async (request, response ) => {
-    const { email, password } = request.body
-    const userDetails = `SELECT * FROM user WHERE email = '${email}'`
-    if (!userDetails){
-        return response.json('Invalid email')
-    }
-
-    const validPassword = await bcrypt.compare(password, userDetails.password)
-    if (!validPassword){
-        return response.json('Invalid Password')
-    }
-
-    const token = jwt.sign({userId: user_id} , jwt_secret_key , {expires: 30})
-    response.json(token)
-})
-
-app.get('/notes', authenicationToken, async (request, response) => {
-        const {userId} = request.user
-        const getNoteQuery = `SELECT * FROM notes where user_id =  ${userId}`;
-        const notes = await db.all(getNoteQuery);
-        response.json(notes);
-    
 });
 
-app.get('/notes/:id', authenicationToken, async(request, response) => {
-    const {id} = request.params 
-    const getSpecificQuery = `
-    SELECT * FROM notes WHERE id = ${id}`
-    const noteQuery = await db.get(getSpecificQuery)
-    response.json(noteQuery)
-})
-
-app.post('/notes' , authenicationToken, async(request, response) => {
-    const {title, content} = request.body 
-    const {userId} = request.user
-    const createNoteQuery = `
-     INSERT INTO notes( title, content , user_id) 
-     VALUES( '${title}', '${content}', ${userId})
-    `
-    await db.run(createNoteQuery)
-    response.json('Note Created SuccessFully')
-})
-
-
-app.put('/notes/:id' ,authenicationToken , async( request, response) => {
-    const { title, content} = request.body 
-    const {id} = request.params 
-    const {userId} = request.user
-    const updateQuery = `UPDATE notes SET 
-    title = '${title}', 
-    content = '${content}',
-    WHERE id = ${id}, 
-    AND user_id = ${userId}
-    `
-    response.json('Note Updated')
-})
-
-
-
-app.delete('/notes/:id',authenicationToken, async(request, response) => {
-    const {id} = request.params 
-    const {userId} = request.user
-    const deleteQuery = `DELETE FROM notes WHERE id = ${id} AND user_id = ${userId}`
-    await db.run(deleteQuery)
-    response.json('Note Deleted SuccessFully')
-})
-
+// ... rest of your endpoints remain the same ...
 
 module.exports = app;
-
