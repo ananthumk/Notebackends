@@ -5,10 +5,11 @@
   "scripts": {
     "start": "node app.js",
     "dev": "nodemon app.js",
+    "build": "npm rebuild bcrypt --build-from-source && npm rebuild sqlite3",
     "install": "npm rebuild sqlite3"
   },
   "dependencies": {
-    "bcrypt": "^5.1.1",
+    "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
     "express": "^4.21.2",
     "jsonwebtoken": "^9.0.2",
@@ -17,5 +18,8 @@
   },
   "devDependencies": {
     "nodemon": "^3.1.9"
+  },
+  "engines": {
+    "node": ">=16.0.0"
   }
 }
